@@ -34,53 +34,50 @@ function extractImdbId(id) {
 
 // Helper function to validate IMDb ID
 function isValidImdbId(id) {
-    return /^tt\d+$/.test(id) || /^\d+$/.test(id);
+    // More relaxed validation: accepts tt1234567 or 1234567
+    return /^(tt\d{7,}|\d{7,})$/.test(id);
 }
 
 // Stream handler for movies and series
 builder.defineStreamHandler(async (args) => {
-    console.log('Stream request received:', args);
-    
     const { type, id } = args;
-    
+    console.log('Stream request:', { type, id });
+
     try {
         if (type === 'movie') {
             return await handleMovieStream(id);
         } else if (type === 'series') {
             return await handleSeriesStream(id);
         } else {
-            console.log('Unsupported content type:', type);
-            return Promise.resolve({ streams: [] });
+            console.error('Unsupported content type:', type);
+            return { streams: [] };
         }
     } catch (error) {
-        console.error('Error in stream handler:', error);
-        return Promise.resolve({ streams: [] });
+        console.error('Stream handler error:', error);
+        return { streams: [] };
     }
 });
 
 // Handle movie streaming
 async function handleMovieStream(id) {
     const imdbId = extractImdbId(id);
-    
+
     if (!isValidImdbId(imdbId)) {
         console.log('Invalid IMDb ID:', imdbId);
-        return Promise.resolve({ streams: [] });
+        return { streams: [] };
     }
-    
-    const vidFastUrl = `https://vidfast.pro/movie/${imdbId}?autoPlay=true`;
-    
-    console.log('Generated movie URL:', vidFastUrl);
-    
+
     const streams = [
         {
-            url: vidFastUrl,
+            url: `https://vidfast.pro/embed/movie/${imdbId}`,
             title: "🎬 VidFast Stream",
             name: "VidFast",
-            description: "Stream via VidFast.pro"
+            description: "Stream via VidFast.pro",
+            behaviorHints: { notWebReady: false }
         }
     ];
-    
-    return Promise.resolve({ streams });
+
+    return { streams };
 }
 
 // Handle series streaming
@@ -88,31 +85,28 @@ async function handleSeriesStream(id) {
     // Parse series ID format: tt1234567:1:1 (id:season:episode)
     const [seriesId, season, episode] = id.split(':');
     const imdbId = extractImdbId(seriesId);
-    
+
     if (!season || !episode) {
         console.log('Missing season or episode information for:', id);
-        return Promise.resolve({ streams: [] });
+        return { streams: [] };
     }
-    
+
     if (!isValidImdbId(imdbId)) {
         console.log('Invalid IMDb ID for series:', imdbId);
-        return Promise.resolve({ streams: [] });
+        return { streams: [] };
     }
-    
-    const vidFastUrl = `https://vidfast.pro/tv/${imdbId}/${season}/${episode}?autoPlay=true`;
-    
-    console.log('Generated series URL:', vidFastUrl);
-    
+
     const streams = [
         {
-            url: vidFastUrl,
+            url: `https://vidfast.pro/embed/tv/${imdbId}/${season}/${episode}`,
             title: `📺 VidFast Stream - S${season}E${episode}`,
             name: "VidFast",
-            description: `Stream S${season}E${episode} via VidFast.pro`
+            description: `Stream S${season}E${episode} via VidFast.pro`,
+            behaviorHints: { notWebReady: false }
         }
     ];
-    
-    return Promise.resolve({ streams });
+
+    return { streams };
 }
 
 module.exports = builder.getInterface();
