@@ -1,0 +1,39 @@
+{
+  "name": "vidfast-stremio-addon",
+  "version": "1.0.1",
+  "description": "Stremio add-on for VidFast.pro streaming service",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js",
+    "dev": "nodemon server.js",
+    "vercel-build": "echo 'Build complete'"
+  },
+  "dependencies": {
+    "stremio-addon-sdk": "^1.6.2",
+    "needle": "^2.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  },
+  "keywords": [
+    "stremio",
+    "addon",
+    "streaming",
+    "vidfast",
+    "vercel"
+  ],
+  "author": "Sz19-pixel",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sz19-pixel/vidfastrepo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Sz19-pixel/vidfastrepo.git"
+  },
+  "homepage": "https://github.com/Sz19-pixel/vidfastrepo#readme"
+}
