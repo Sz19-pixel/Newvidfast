@@ -2,15 +2,15 @@
   "version": 2,
   "name": "vidfast-stremio-addon",
   "regions": ["fra1"],
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 30
+    }
+  },
   "routes": [
     {
       "src": "/manifest.json",
-      "dest": "/api/manifest.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
+      "dest": "/api/manifest.js"
     },
     {
       "src": "/stream/movie/([^/]+)",
@@ -21,10 +21,6 @@
       "dest": "/api/stream.js?type=series&id=$1"
     },
     {
-      "src": "/stream/([^/]+)/([^/]+)",
-      "dest": "/api/stream.js?type=$1&id=$2"
-    },
-    {
       "src": "/health",
       "dest": "/api/health.js"
     },
@@ -33,15 +29,9 @@
       "dest": "/api/index.js"
     }
   ],
-  "functions": {
-    "api/*.js": {
-      "maxDuration": 30,
-      "memory": 1024
-    }
-  },
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
@@ -53,7 +43,7 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
+          "value": "Content-Type, Authorization, X-Requested-With"
         }
       ]
     }
