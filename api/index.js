@@ -1,5 +1,8 @@
 // Vercel serverless function for the main page
 module.exports = (req, res) => {
+    const host = req.headers.host || 'localhost:3000';
+    const manifestUrl = `https://${host}/manifest.json`;
+    
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(`
         <!DOCTYPE html>
@@ -117,6 +120,36 @@ module.exports = (req, res) => {
                     font-size: 14px;
                     margin-top: 10px;
                 }
+                .test-section {
+                    background: #f0f8ff;
+                    padding: 20px;
+                    border-radius: 10px;
+                    margin: 20px 0;
+                }
+                .test-btn {
+                    background: #007bff;
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 25px;
+                    cursor: pointer;
+                    margin: 5px;
+                    font-size: 14px;
+                }
+                .test-btn:hover {
+                    background: #0056b3;
+                }
+                .test-result {
+                    margin-top: 10px;
+                    padding: 10px;
+                    background: #f8f9fa;
+                    border-radius: 5px;
+                    font-family: monospace;
+                    font-size: 12px;
+                    text-align: left;
+                    max-height: 200px;
+                    overflow-y: auto;
+                }
             </style>
         </head>
         <body>
@@ -127,16 +160,27 @@ module.exports = (req, res) => {
                 
                 <div class="status">✅ الإضافة تعمل بنجاح!</div>
                 
+                <div class="test-section">
+                    <h3>🔧 اختبار الإضافة:</h3>
+                    <button class="test-btn" onclick="testManifest()">اختبار Manifest</button>
+                    <button class="test-btn" onclick="testMovieStream()">اختبار Movie Stream</button>
+                    <button class="test-btn" onclick="testSeriesStream()">اختبار Series Stream</button>
+                    <div id="testResult" class="test-result" style="display: none;"></div>
+                </div>
+                
                 <div class="install-section">
                     <button class="install-btn" onclick="installAddon()">
                         📱 Install في Stremio
                     </button>
-                    <p class="install-note">اضغط على الزر لفتح الإضافة مباشرة في تطبيق Stremio</p>
+                    <button class="install-btn" onclick="copyManifestUrl()" style="background: #28a745;">
+                        📋 Copy Manifest URL
+                    </button>
+                    <p class="install-note">اضغط على Install لفتح الإضافة مباشرة في Stremio، أو Copy URL للتثبيت اليدوي</p>
                 </div>
                 
                 <div class="manifest-url">
                     <strong>رابط Manifest:</strong><br>
-                    https://${req.headers.host}/manifest.json
+                    ${manifestUrl}
                 </div>
                 
                 <div class="instructions">
@@ -153,59 +197,114 @@ module.exports = (req, res) => {
             </div>
             
             <script>
+                const manifestUrl = '${manifestUrl}';
+                
+                async function testManifest() {
+                    const resultDiv = document.getElementById('testResult');
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = 'جاري اختبار Manifest...';
+                    
+                    try {
+                        const response = await fetch(manifestUrl);
+                        const data = await response.json();
+                        resultDiv.innerHTML = 'نتيجة اختبار Manifest:\\n' + JSON.stringify(data, null, 2);
+                    } catch (error) {
+                        resultDiv.innerHTML = 'خطأ في اختبار Manifest:\\n' + error.message;
+                    }
+                }
+                
+                async function testMovieStream() {
+                    const resultDiv = document.getElementById('testResult');
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = 'جاري اختبار Movie Stream...';
+                    
+                    try {
+                        const response = await fetch('/stream/movie/tt0468569');
+                        const data = await response.json();
+                        resultDiv.innerHTML = 'نتيجة اختبار Movie Stream:\\n' + JSON.stringify(data, null, 2);
+                    } catch (error) {
+                        resultDiv.innerHTML = 'خطأ في اختبار Movie Stream:\\n' + error.message;
+                    }
+                }
+                
+                async function testSeriesStream() {
+                    const resultDiv = document.getElementById('testResult');
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = 'جاري اختبار Series Stream...';
+                    
+                    try {
+                        const response = await fetch('/stream/series/tt0903747:1:1');
+                        const data = await response.json();
+                        resultDiv.innerHTML = 'نتيجة اختبار Series Stream:\\n' + JSON.stringify(data, null, 2);
+                    } catch (error) {
+                        resultDiv.innerHTML = 'خطأ في اختبار Series Stream:\\n' + error.message;
+                    }
+                }
+                
+                async function copyManifestUrl() {
+                    try {
+                        await navigator.clipboard.writeText(manifestUrl);
+                        alert('تم نسخ رابط Manifest بنجاح!\\n\\nالآن اذهب إلى Stremio وألصق الرابط في Community Add-ons');
+                    } catch (error) {
+                        // Fallback for older browsers
+                        prompt('انسخ هذا الرابط:', manifestUrl);
+                    }
+                }
+                
                 function installAddon() {
-                    const manifestUrl = 'https://${req.headers.host}/manifest.json';
+                    // Try multiple methods to open Stremio
                     const stremioUrl = 'stremio://' + encodeURIComponent(manifestUrl);
                     
-                    // Try to open Stremio app first
+                    // Method 1: Try direct deep link
                     window.location.href = stremioUrl;
                     
-                    // Fallback: show manual instructions after a short delay
+                    // Method 2: Try with stremio-addons scheme
+                    setTimeout(() => {
+                        window.location.href = 'stremio-addons://' + encodeURIComponent(manifestUrl);
+                    }, 1000);
+                    
+                    // Method 3: Fallback to manual instructions
                     setTimeout(() => {
                         if (confirm('لم يتم فتح تطبيق Stremio تلقائياً؟\\n\\nاضغط OK لنسخ الرابط والذهاب لتطبيق Stremio يدوياً')) {
-                            // Copy to clipboard
-                            navigator.clipboard.writeText(manifestUrl).then(() => {
-                                alert('تم نسخ الرابط! \\nالآن اذهب إلى Stremio → Add-ons → Community Add-ons والصق الرابط');
-                            }).catch(() => {
-                                // Fallback for older browsers
-                                prompt('انسخ هذا الرابط واذهب إلى Stremio:', manifestUrl);
-                            });
+                            copyManifestUrl();
                         }
-                    }, 2000);
+                    }, 3000);
                 }
                 
                 // Add some interactive effects
                 document.addEventListener('DOMContentLoaded', function() {
-                    const installBtn = document.querySelector('.install-btn');
+                    const installBtns = document.querySelectorAll('.install-btn');
                     
-                    // Add click effect
-                    installBtn.addEventListener('click', function(e) {
-                        // Create ripple effect
-                        const ripple = document.createElement('span');
-                        const rect = this.getBoundingClientRect();
-                        const size = Math.max(rect.width, rect.height);
-                        const x = e.clientX - rect.left - size / 2;
-                        const y = e.clientY - rect.top - size / 2;
-                        
-                        ripple.style.cssText = \`
-                            position: absolute;
-                            border-radius: 50%;
-                            background: rgba(255,255,255,0.6);
-                            transform: scale(0);
-                            animation: ripple 0.6s linear;
-                            left: \${x}px;
-                            top: \${y}px;
-                            width: \${size}px;
-                            height: \${size}px;
-                        \`;
-                        
-                        this.style.position = 'relative';
-                        this.style.overflow = 'hidden';
-                        this.appendChild(ripple);
-                        
-                        setTimeout(() => {
-                            ripple.remove();
-                        }, 600);
+                    installBtns.forEach(btn => {
+                        // Add click effect
+                        btn.addEventListener('click', function(e) {
+                            // Create ripple effect
+                            const ripple = document.createElement('span');
+                            const rect = this.getBoundingClientRect();
+                            const size = Math.max(rect.width, rect.height);
+                            const x = e.clientX - rect.left - size / 2;
+                            const y = e.clientY - rect.top - size / 2;
+                            
+                            ripple.style.cssText = \`
+                                position: absolute;
+                                border-radius: 50%;
+                                background: rgba(255,255,255,0.6);
+                                transform: scale(0);
+                                animation: ripple 0.6s linear;
+                                left: \${x}px;
+                                top: \${y}px;
+                                width: \${size}px;
+                                height: \${size}px;
+                            \`;
+                            
+                            this.style.position = 'relative';
+                            this.style.overflow = 'hidden';
+                            this.appendChild(ripple);
+                            
+                            setTimeout(() => {
+                                ripple.remove();
+                            }, 600);
+                        });
                     });
                 });
             </script>
