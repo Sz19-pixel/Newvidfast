@@ -3,7 +3,8 @@ module.exports = (req, res) => {
     const host = req.headers.host || 'localhost:3000';
     const manifestUrl = `https://${host}/manifest.json`;
     
-    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).send(`
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
@@ -28,7 +29,7 @@ module.exports = (req, res) => {
                     padding: 40px;
                     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
                     text-align: center;
-                    max-width: 600px;
+                    max-width: 700px;
                     width: 100%;
                 }
                 .logo {
@@ -62,23 +63,8 @@ module.exports = (req, res) => {
                     margin: 30px 0;
                     font-family: 'Courier New', monospace;
                     word-break: break-all;
-                    font-size: 16px;
+                    font-size: 14px;
                     color: #333;
-                }
-                .instructions {
-                    text-align: right;
-                    background: #e3f2fd;
-                    padding: 20px;
-                    border-radius: 10px;
-                    margin: 20px 0;
-                }
-                .instructions h3 {
-                    color: #1976d2;
-                    margin-top: 0;
-                }
-                .step {
-                    margin: 10px 0;
-                    padding: 5px 0;
                 }
                 .status {
                     background: #4caf50;
@@ -88,6 +74,9 @@ module.exports = (req, res) => {
                     display: inline-block;
                     margin: 20px 0;
                     font-weight: bold;
+                }
+                .status.error {
+                    background: #f44336;
                 }
                 .install-section {
                     margin: 30px 0;
@@ -110,15 +99,6 @@ module.exports = (req, res) => {
                 .install-btn:hover {
                     transform: translateY(-2px);
                     box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-                    background: linear-gradient(45deg, #F7931E, #FF6B35);
-                }
-                .install-btn:active {
-                    transform: translateY(0);
-                }
-                .install-note {
-                    color: #666;
-                    font-size: 14px;
-                    margin-top: 10px;
                 }
                 .test-section {
                     background: #f0f8ff;
@@ -141,14 +121,34 @@ module.exports = (req, res) => {
                 }
                 .test-result {
                     margin-top: 10px;
-                    padding: 10px;
+                    padding: 15px;
                     background: #f8f9fa;
                     border-radius: 5px;
                     font-family: monospace;
                     font-size: 12px;
                     text-align: left;
-                    max-height: 200px;
+                    max-height: 300px;
                     overflow-y: auto;
+                    border: 1px solid #ddd;
+                }
+                .instructions {
+                    text-align: right;
+                    background: #e3f2fd;
+                    padding: 20px;
+                    border-radius: 10px;
+                    margin: 20px 0;
+                }
+                .step {
+                    margin: 10px 0;
+                    padding: 5px 0;
+                }
+                .troubleshoot {
+                    background: #fff3cd;
+                    border: 1px solid #ffeaa7;
+                    border-radius: 10px;
+                    padding: 20px;
+                    margin: 20px 0;
+                    text-align: right;
                 }
             </style>
         </head>
@@ -158,24 +158,27 @@ module.exports = (req, res) => {
                 <h1>🎬 VidFast Stremio Add-on</h1>
                 <p class="subtitle">إضافة Stremio للبث المباشر من VidFast.pro</p>
                 
-                <div class="status">✅ الإضافة تعمل بنجاح!</div>
+                <div id="status" class="status">⏳ جاري فحص الإضافة...</div>
                 
                 <div class="test-section">
                     <h3>🔧 اختبار الإضافة:</h3>
                     <button class="test-btn" onclick="testManifest()">اختبار Manifest</button>
-                    <button class="test-btn" onclick="testMovieStream()">اختبار Movie Stream</button>
-                    <button class="test-btn" onclick="testSeriesStream()">اختبار Series Stream</button>
+                    <button class="test-btn" onclick="testMovieStream()">اختبار فيلم</button>
+                    <button class="test-btn" onclick="testSeriesStream()">اختبار مسلسل</button>
+                    <button class="test-btn" onclick="runAllTests()">اختبار شامل</button>
                     <div id="testResult" class="test-result" style="display: none;"></div>
                 </div>
                 
                 <div class="install-section">
                     <button class="install-btn" onclick="installAddon()">
-                        📱 Install في Stremio
+                        📱 تثبيت في Stremio
                     </button>
                     <button class="install-btn" onclick="copyManifestUrl()" style="background: #28a745;">
-                        📋 Copy Manifest URL
+                        📋 نسخ رابط Manifest
                     </button>
-                    <p class="install-note">اضغط على Install لفتح الإضافة مباشرة في Stremio، أو Copy URL للتثبيت اليدوي</p>
+                    <p style="color: #666; font-size: 14px; margin-top: 10px;">
+                        اضغط على تثبيت لفتح الإضافة مباشرة في Stremio، أو انسخ الرابط للتثبيت اليدوي
+                    </p>
                 </div>
                 
                 <div class="manifest-url">
@@ -183,140 +186,176 @@ module.exports = (req, res) => {
                     ${manifestUrl}
                 </div>
                 
-                <div class="instructions">
-                    <h3>📋 طريقة التثبيت البديلة (يدوياً):</h3>
-                    <div class="step">1. افتح تطبيق Stremio</div>
-                    <div class="step">2. اذهب إلى Add-ons → Community Add-ons</div>
-                    <div class="step">3. انسخ الرابط أعلاه والصقه في خانة "Addon Repository Url"</div>
-                    <div class="step">4. اضغط على Install</div>
+                <div class="troubleshoot">
+                    <h3>🔧 حل المشاكل الشائعة:</h3>
+                    <div class="step">• إذا لم تظهر روابط المشاهدة: تأكد من صحة IMDb ID</div>
+                    <div class="step">• إذا فشل التحميل في التطبيق: استخدم النسخة الويب من Stremio</div>
+                    <div class="step">• للمسلسلات: تأكد من توفر الحلقة على VidFast</div>
                 </div>
                 
-                <p style="color: #666; margin-top: 30px;">
-                    بعد التثبيت ستجد مصادر VidFast متاحة عند البحث عن الأفلام والمسلسلات
-                </p>
+                <div class="instructions">
+                    <h3>📋 طريقة التثبيت البديلة:</h3>
+                    <div class="step">1. افتح تطبيق Stremio</div>
+                    <div class="step">2. اذهب إلى Add-ons → Community Add-ons</div>
+                    <div class="step">3. انسخ الرابط أعلاه والصقه</div>
+                    <div class="step">4. اضغط Install</div>
+                </div>
             </div>
             
             <script>
                 const manifestUrl = '${manifestUrl}';
+                const baseUrl = 'https://${host}';
+                
+                // Auto-test on load
+                window.addEventListener('load', function() {
+                    setTimeout(testManifest, 1000);
+                });
                 
                 async function testManifest() {
                     const resultDiv = document.getElementById('testResult');
+                    const statusDiv = document.getElementById('status');
+                    
                     resultDiv.style.display = 'block';
                     resultDiv.innerHTML = 'جاري اختبار Manifest...';
+                    statusDiv.textContent = '⏳ جاري فحص الإضافة...';
+                    statusDiv.className = 'status';
                     
                     try {
                         const response = await fetch(manifestUrl);
                         const data = await response.json();
-                        resultDiv.innerHTML = 'نتيجة اختبار Manifest:\\n' + JSON.stringify(data, null, 2);
+                        
+                        if (data && data.id) {
+                            resultDiv.innerHTML = '✅ نتيجة اختبار Manifest:\\n' + JSON.stringify(data, null, 2);
+                            statusDiv.textContent = '✅ الإضافة تعمل بنجاح!';
+                            statusDiv.className = 'status';
+                        } else {
+                            throw new Error('Invalid manifest structure');
+                        }
                     } catch (error) {
-                        resultDiv.innerHTML = 'خطأ في اختبار Manifest:\\n' + error.message;
+                        resultDiv.innerHTML = '❌ خطأ في اختبار Manifest:\\n' + error.message;
+                        statusDiv.textContent = '❌ خطأ في الإضافة!';
+                        statusDiv.className = 'status error';
                     }
                 }
                 
                 async function testMovieStream() {
                     const resultDiv = document.getElementById('testResult');
                     resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = 'جاري اختبار Movie Stream...';
+                    resultDiv.innerHTML = 'جاري اختبار بث الأفلام...';
                     
                     try {
-                        const response = await fetch('/stream/movie/tt0468569');
+                        const testUrl = baseUrl + '/stream/movie/tt0468569'; // The Dark Knight
+                        const response = await fetch(testUrl);
                         const data = await response.json();
-                        resultDiv.innerHTML = 'نتيجة اختبار Movie Stream:\\n' + JSON.stringify(data, null, 2);
+                        
+                        if (data.streams && data.streams.length > 0) {
+                            resultDiv.innerHTML = '✅ نتيجة اختبار بث الأفلام:\\n' + 
+                                'عدد الروابط: ' + data.streams.length + '\\n' +
+                                JSON.stringify(data, null, 2);
+                        } else {
+                            resultDiv.innerHTML = '⚠️ لم يتم العثور على روابط بث للفيلم\\n' + JSON.stringify(data, null, 2);
+                        }
                     } catch (error) {
-                        resultDiv.innerHTML = 'خطأ في اختبار Movie Stream:\\n' + error.message;
+                        resultDiv.innerHTML = '❌ خطأ في اختبار بث الأفلام:\\n' + error.message;
                     }
                 }
                 
                 async function testSeriesStream() {
                     const resultDiv = document.getElementById('testResult');
                     resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = 'جاري اختبار Series Stream...';
+                    resultDiv.innerHTML = 'جاري اختبار بث المسلسلات...';
                     
                     try {
-                        const response = await fetch('/stream/series/tt0903747:1:1');
+                        const testUrl = baseUrl + '/stream/series/tt0903747:1:1'; // Breaking Bad S01E01
+                        const response = await fetch(testUrl);
                         const data = await response.json();
-                        resultDiv.innerHTML = 'نتيجة اختبار Series Stream:\\n' + JSON.stringify(data, null, 2);
+                        
+                        if (data.streams && data.streams.length > 0) {
+                            resultDiv.innerHTML = '✅ نتيجة اختبار بث المسلسلات:\\n' +
+                                'عدد الروابط: ' + data.streams.length + '\\n' +
+                                JSON.stringify(data, null, 2);
+                        } else {
+                            resultDiv.innerHTML = '⚠️ لم يتم العثور على روابط بث للمسلسل\\n' + JSON.stringify(data, null, 2);
+                        }
                     } catch (error) {
-                        resultDiv.innerHTML = 'خطأ في اختبار Series Stream:\\n' + error.message;
+                        resultDiv.innerHTML = '❌ خطأ في اختبار بث المسلسلات:\\n' + error.message;
                     }
+                }
+                
+                async function runAllTests() {
+                    const resultDiv = document.getElementById('testResult');
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = 'جاري تشغيل جميع الاختبارات...\\n\\n';
+                    
+                    // Test manifest
+                    resultDiv.innerHTML += '1️⃣ اختبار Manifest...\\n';
+                    try {
+                        const manifestResponse = await fetch(manifestUrl);
+                        const manifestData = await manifestResponse.json();
+                        resultDiv.innerHTML += '✅ Manifest يعمل بنجاح\\n\\n';
+                    } catch (error) {
+                        resultDiv.innerHTML += '❌ خطأ في Manifest: ' + error.message + '\\n\\n';
+                        return;
+                    }
+                    
+                    // Test movie stream
+                    resultDiv.innerHTML += '2️⃣ اختبار بث الأفلام...\\n';
+                    try {
+                        const movieResponse = await fetch(baseUrl + '/stream/movie/tt0468569');
+                        const movieData = await movieResponse.json();
+                        resultDiv.innerHTML += '✅ بث الأفلام: ' + (movieData.streams?.length || 0) + ' روابط\\n\\n';
+                    } catch (error) {
+                        resultDiv.innerHTML += '❌ خطأ في بث الأفلام: ' + error.message + '\\n\\n';
+                    }
+                    
+                    // Test series stream
+                    resultDiv.innerHTML += '3️⃣ اختبار بث المسلسلات...\\n';
+                    try {
+                        const seriesResponse = await fetch(baseUrl + '/stream/series/tt0903747:1:1');
+                        const seriesData = await seriesResponse.json();
+                        resultDiv.innerHTML += '✅ بث المسلسلات: ' + (seriesData.streams?.length || 0) + ' روابط\\n\\n';
+                    } catch (error) {
+                        resultDiv.innerHTML += '❌ خطأ في بث المسلسلات: ' + error.message + '\\n\\n';
+                    }
+                    
+                    resultDiv.innerHTML += '🎉 انتهى الاختبار الشامل!';
                 }
                 
                 async function copyManifestUrl() {
                     try {
                         await navigator.clipboard.writeText(manifestUrl);
-                        alert('تم نسخ رابط Manifest بنجاح!\\n\\nالآن اذهب إلى Stremio وألصق الرابط في Community Add-ons');
+                        alert('تم نسخ رابط Manifest بنجاح!\\n\\nالرابط: ' + manifestUrl + '\\n\\nالآن اذهب إلى Stremio وألصق الرابط في Community Add-ons');
                     } catch (error) {
-                        // Fallback for older browsers
                         prompt('انسخ هذا الرابط:', manifestUrl);
                     }
                 }
                 
                 function installAddon() {
-                    // Try multiple methods to open Stremio
-                    const stremioUrl = 'stremio://' + encodeURIComponent(manifestUrl);
+                    // Try different installation methods
+                    const encodedUrl = encodeURIComponent(manifestUrl);
                     
-                    // Method 1: Try direct deep link
-                    window.location.href = stremioUrl;
+                    // Method 1: Direct Stremio protocol
+                    window.location.href = 'stremio://' + encodedUrl;
                     
-                    // Method 2: Try with stremio-addons scheme
+                    // Method 2: Alternative protocol
                     setTimeout(() => {
-                        window.location.href = 'stremio-addons://' + encodeURIComponent(manifestUrl);
+                        window.location.href = 'stremio-addons://' + encodedUrl;
                     }, 1000);
                     
-                    // Method 3: Fallback to manual instructions
+                    // Method 3: Web version fallback
                     setTimeout(() => {
-                        if (confirm('لم يتم فتح تطبيق Stremio تلقائياً؟\\n\\nاضغط OK لنسخ الرابط والذهاب لتطبيق Stremio يدوياً')) {
+                        window.open('https://web.stremio.com/', '_blank');
+                        copyManifestUrl();
+                    }, 2000);
+                    
+                    // Method 4: Manual instructions
+                    setTimeout(() => {
+                        if (confirm('هل تم فتح تطبيق Stremio؟\\n\\nإذا لم يفتح، اضغط OK لنسخ الرابط يدوياً')) {
                             copyManifestUrl();
                         }
-                    }, 3000);
+                    }, 4000);
                 }
-                
-                // Add some interactive effects
-                document.addEventListener('DOMContentLoaded', function() {
-                    const installBtns = document.querySelectorAll('.install-btn');
-                    
-                    installBtns.forEach(btn => {
-                        // Add click effect
-                        btn.addEventListener('click', function(e) {
-                            // Create ripple effect
-                            const ripple = document.createElement('span');
-                            const rect = this.getBoundingClientRect();
-                            const size = Math.max(rect.width, rect.height);
-                            const x = e.clientX - rect.left - size / 2;
-                            const y = e.clientY - rect.top - size / 2;
-                            
-                            ripple.style.cssText = \`
-                                position: absolute;
-                                border-radius: 50%;
-                                background: rgba(255,255,255,0.6);
-                                transform: scale(0);
-                                animation: ripple 0.6s linear;
-                                left: \${x}px;
-                                top: \${y}px;
-                                width: \${size}px;
-                                height: \${size}px;
-                            \`;
-                            
-                            this.style.position = 'relative';
-                            this.style.overflow = 'hidden';
-                            this.appendChild(ripple);
-                            
-                            setTimeout(() => {
-                                ripple.remove();
-                            }, 600);
-                        });
-                    });
-                });
             </script>
-            
-            <style>
-                @keyframes ripple {
-                    to {
-                        transform: scale(2);
-                        opacity: 0;
-                    }
-                }
-            </style>
         </body>
         </html>
     `);
