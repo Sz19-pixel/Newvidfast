@@ -86,6 +86,37 @@ module.exports = (req, res) => {
                     margin: 20px 0;
                     font-weight: bold;
                 }
+                .install-section {
+                    margin: 30px 0;
+                }
+                .install-btn {
+                    background: linear-gradient(45deg, #FF6B35, #F7931E);
+                    color: white;
+                    border: none;
+                    padding: 15px 30px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    border-radius: 50px;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+                    transition: all 0.3s ease;
+                    text-decoration: none;
+                    display: inline-block;
+                    margin: 10px;
+                }
+                .install-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+                    background: linear-gradient(45deg, #F7931E, #FF6B35);
+                }
+                .install-btn:active {
+                    transform: translateY(0);
+                }
+                .install-note {
+                    color: #666;
+                    font-size: 14px;
+                    margin-top: 10px;
+                }
             </style>
         </head>
         <body>
@@ -96,12 +127,20 @@ module.exports = (req, res) => {
                 
                 <div class="status">✅ الإضافة تعمل بنجاح!</div>
                 
+                <div class="install-section">
+                    <button class="install-btn" onclick="installAddon()">
+                        📱 Install في Stremio
+                    </button>
+                    <p class="install-note">اضغط على الزر لفتح الإضافة مباشرة في تطبيق Stremio</p>
+                </div>
+                
                 <div class="manifest-url">
-                    ${req.headers.host}/manifest.json
+                    <strong>رابط Manifest:</strong><br>
+                    https://${req.headers.host}/manifest.json
                 </div>
                 
                 <div class="instructions">
-                    <h3>📋 طريقة التثبيت:</h3>
+                    <h3>📋 طريقة التثبيت البديلة (يدوياً):</h3>
                     <div class="step">1. افتح تطبيق Stremio</div>
                     <div class="step">2. اذهب إلى Add-ons → Community Add-ons</div>
                     <div class="step">3. انسخ الرابط أعلاه والصقه في خانة "Addon Repository Url"</div>
@@ -112,6 +151,73 @@ module.exports = (req, res) => {
                     بعد التثبيت ستجد مصادر VidFast متاحة عند البحث عن الأفلام والمسلسلات
                 </p>
             </div>
+            
+            <script>
+                function installAddon() {
+                    const manifestUrl = 'https://${req.headers.host}/manifest.json';
+                    const stremioUrl = 'stremio://' + encodeURIComponent(manifestUrl);
+                    
+                    // Try to open Stremio app first
+                    window.location.href = stremioUrl;
+                    
+                    // Fallback: show manual instructions after a short delay
+                    setTimeout(() => {
+                        if (confirm('لم يتم فتح تطبيق Stremio تلقائياً؟\\n\\nاضغط OK لنسخ الرابط والذهاب لتطبيق Stremio يدوياً')) {
+                            // Copy to clipboard
+                            navigator.clipboard.writeText(manifestUrl).then(() => {
+                                alert('تم نسخ الرابط! \\nالآن اذهب إلى Stremio → Add-ons → Community Add-ons والصق الرابط');
+                            }).catch(() => {
+                                // Fallback for older browsers
+                                prompt('انسخ هذا الرابط واذهب إلى Stremio:', manifestUrl);
+                            });
+                        }
+                    }, 2000);
+                }
+                
+                // Add some interactive effects
+                document.addEventListener('DOMContentLoaded', function() {
+                    const installBtn = document.querySelector('.install-btn');
+                    
+                    // Add click effect
+                    installBtn.addEventListener('click', function(e) {
+                        // Create ripple effect
+                        const ripple = document.createElement('span');
+                        const rect = this.getBoundingClientRect();
+                        const size = Math.max(rect.width, rect.height);
+                        const x = e.clientX - rect.left - size / 2;
+                        const y = e.clientY - rect.top - size / 2;
+                        
+                        ripple.style.cssText = \`
+                            position: absolute;
+                            border-radius: 50%;
+                            background: rgba(255,255,255,0.6);
+                            transform: scale(0);
+                            animation: ripple 0.6s linear;
+                            left: \${x}px;
+                            top: \${y}px;
+                            width: \${size}px;
+                            height: \${size}px;
+                        \`;
+                        
+                        this.style.position = 'relative';
+                        this.style.overflow = 'hidden';
+                        this.appendChild(ripple);
+                        
+                        setTimeout(() => {
+                            ripple.remove();
+                        }, 600);
+                    });
+                });
+            </script>
+            
+            <style>
+                @keyframes ripple {
+                    to {
+                        transform: scale(2);
+                        opacity: 0;
+                    }
+                }
+            </style>
         </body>
         </html>
     `);
