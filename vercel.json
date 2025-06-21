@@ -1,22 +1,28 @@
 {
   "version": 2,
   "name": "vidfast-stremio-addon",
+  "regions": ["fra1"],
   "routes": [
     {
       "src": "/manifest.json",
-      "dest": "/api/manifest.js"
+      "dest": "/api/manifest.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
     },
     {
-      "src": "/stream/movie/(.*)",
+      "src": "/stream/movie/([^/]+)",
       "dest": "/api/stream.js?type=movie&id=$1"
     },
     {
-      "src": "/stream/series/(.*)",
+      "src": "/stream/series/([^/]+)",
       "dest": "/api/stream.js?type=series&id=$1"
     },
     {
-      "src": "/stream/(.*)",
-      "dest": "/api/stream.js"
+      "src": "/stream/([^/]+)/([^/]+)",
+      "dest": "/api/stream.js?type=$1&id=$2"
     },
     {
       "src": "/health",
@@ -29,7 +35,27 @@
   ],
   "functions": {
     "api/*.js": {
-      "maxDuration": 10
+      "maxDuration": 30,
+      "memory": 1024
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ]
 }
