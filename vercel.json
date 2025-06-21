@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "name": "vidfast-stremio-addon",
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/manifest.json",
+      "dest": "/api/manifest"
+    },
+    {
+      "src": "/stream/(.*)",
+      "dest": "/api/stream"
+    },
+    {
+      "src": "/",
+      "dest": "/api/index"
+    }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
